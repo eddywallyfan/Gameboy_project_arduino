@@ -1,0 +1,173 @@
+#include <U8glib.h>
+#include <SFEMP3Shield.h>
+#include <SFEMP3ShieldConfig.h>
+#include <SFEMP3Shieldmainpage.h>
+
+#include <SPI.h>
+#include <SdFat.h>
+#include <SdFatUtil.h>
+#include <SFEMP3Shield.h>
+
+// to convert to bitmap http://manytools.org/hacker-tools/image-to-byte-array/
+const uint8_t frame2[] PROGMEM = {
+  0x0, 0x7, 0xf0, 0x0, 0x0, 0x3f, 0xfe, 0x0, 0x0, 0xff, 0xff, 0x80, 0x1, 0xff, 0xff,
+  0xc0, 0x7, 0xff, 0xff, 0xe0, 0xf, 0xf8, 0xff, 0xf0, 0xf, 0xf0, 0x7f, 0xc0, 0x1f, 0xf0,
+  0x7f, 0x80, 0x3f, 0xf0, 0x7f, 0x0, 0x3f, 0xf8, 0xfe, 0x0, 0x7f, 0xff, 0xfc, 0x0, 0x7f,
+  0xff, 0xf8, 0x0, 0x7f, 0xff, 0xf0, 0x0, 0x7f, 0xff, 0xe0, 0x0, 0x7f, 0xff, 0xc0, 0x0,
+  0xff, 0xff, 0x81, 0x82, 0xff, 0xff, 0x81, 0x82, 0x7f, 0xff, 0xc0, 0x0, 0x7f, 0xff, 0xe0,
+  0x0, 0x7f, 0xff, 0xf0, 0x0, 0x7f, 0xff, 0xf8, 0x0, 0x7f, 0xff, 0xfc, 0x0, 0x3f, 0xff,
+  0xfe, 0x0, 0x3f, 0xff, 0xff, 0x0, 0x1f, 0xff, 0xff, 0x80, 0xf, 0xff, 0xff, 0xc0, 0xf,
+  0xff, 0xff, 0xf0, 0x7, 0xff, 0xff, 0xe0, 0x1, 0xff, 0xff, 0xc0, 0x0, 0xff, 0xff, 0x80,
+  0x0, 0x3f, 0xfe, 0x0, 0x0, 0x7, 0xf0, 0x0,
+
+};
+
+
+const uint8_t frame1[] PROGMEM = {
+0x0, 0x0, 0x0, 0x0, 0x0, 0x3f, 0xf8, 0x0, 0x0, 0xff, 0xfe, 0x0, 0x1, 0xff, 0xff, 
+0x80, 0x3, 0xff, 0xff, 0xc0, 0x7, 0xff, 0xff, 0xe0, 0xf, 0xff, 0xf7, 0xf0, 0x0, 0x3f, 
+0xc1, 0xf0, 0x0, 0x1f, 0x80, 0xf8, 0x0, 0x1f, 0x0, 0x78, 0x0, 0xf, 0x0, 0x7c, 0x1c, 
+0xe, 0x70, 0x7c, 0x3e, 0xf, 0xf0, 0x7c, 0x3e, 0xf, 0xf0, 0x7c, 0x3e, 0xf, 0xf0, 0x7c, 
+0x3c, 0xf, 0x70, 0x7c, 0x60, 0x1f, 0x0, 0x7e, 0x70, 0x3f, 0x80, 0xfe, 0x7c, 0x7f, 0xc1, 
+0xfe, 0x7f, 0xff, 0xff, 0xfe, 0x7f, 0xff, 0xff, 0xfe, 0x7f, 0xff, 0xff, 0xfe, 0x7f, 0xff, 
+0xff, 0xfe, 0x7f, 0xff, 0xff, 0xfe, 0x7f, 0xff, 0xff, 0xfe, 0x7f, 0xff, 0xff, 0xfe, 0x7f, 
+0xff, 0xff, 0xfe, 0x7f, 0xff, 0xff, 0xfe, 0x71, 0xfe, 0x3f, 0xce, 0x60, 0xfc, 0x1f, 0x6, 
+0x40, 0x78, 0x1e, 0x2, 0x0, 0x0, 0x0, 0x0,
+};
+int maxValue = 35;
+int sensorPin = A0; // select the input pin for the potentiometer
+int sensorValue = 0; // variable to store the value coming from the sensor
+SdFat sd;
+SFEMP3Shield MP3player;
+const uint8_t volume = 0; // MP3 Player volume 0=max, 255=lowest (off)
+//**************************************************
+// Change this constructor to match your display!!!
+U8GLIB_SH1106_128X64 u8g(4, 5, 6, 7);
+//**************************************************
+void setup() {
+  Serial.begin(9600);
+  sd.begin(SD_SEL, SPI_HALF_SPEED);
+  MP3player.begin();
+  MP3player.setVolume(1,1);
+  u8g.setRot180();
+  u8g.setFont(u8g_font_unifont);
+  u8g.setColorIndex(1); // Instructs the display to draw with a pixel on.
+
+}
+
+void loop() {
+  if(MP3player.isPlaying() == 0){
+          //MP3player.playTrack(1);
+
+    }
+  sensorValue = analogRead (sensorPin);
+  Serial.println (sensorValue, DEC);
+  if (sensorValue > maxValue) {
+    u8g.firstPage();
+    do {
+      draw6();
+    } while ( u8g.nextPage() );
+    delay(3000);
+  }
+  
+  delay(600);
+  u8g.firstPage();
+  do {
+    draw();
+  } while ( u8g.nextPage() );
+  //================
+
+  sensorValue = analogRead (sensorPin);
+  Serial.println (sensorValue, DEC);
+  if (sensorValue > maxValue) {
+    u8g.firstPage();
+    do {
+      draw6();
+    } while ( u8g.nextPage() );
+    delay(3000);
+  }
+  delay(600);
+  u8g.firstPage();
+  do {
+    draw2();
+  } while ( u8g.nextPage() );
+  delay(600);
+  //================
+  sensorValue = analogRead (sensorPin);
+  Serial.println (sensorValue, DEC);
+  if (sensorValue > maxValue) {
+    u8g.firstPage();
+    do {
+      draw6();
+    } while ( u8g.nextPage() );
+    delay(3000);
+  }
+  u8g.firstPage();
+  do {
+    draw3();
+  } while ( u8g.nextPage() );
+  delay(600);
+  //================
+  sensorValue = analogRead (sensorPin);
+  Serial.println (sensorValue, DEC);
+  if (sensorValue > maxValue) {
+    u8g.firstPage();
+    do {
+      draw6();
+    } while ( u8g.nextPage() );
+    delay(3000);
+  }
+  u8g.firstPage();
+  do {
+    draw4();
+  } while ( u8g.nextPage() );
+  delay(600);
+  //================
+
+  sensorValue = analogRead (sensorPin);
+  Serial.println (sensorValue, DEC);
+  if (sensorValue > maxValue) {
+    u8g.firstPage();
+    do {
+      draw6();
+    } while ( u8g.nextPage() );
+  }
+  u8g.firstPage();
+  do {
+    draw5();
+  } while ( u8g.nextPage() );
+
+  delay(600);
+  u8g.begin();//belangrijk!!!!
+}
+
+
+
+void draw() {
+  u8g.drawBitmapP( 0, 5, 4, 32, frame2);
+  u8g.drawStr( 15, 55, "Play Pacman!");
+}
+void draw2() {
+  u8g.drawBitmapP( 32, 5, 4, 32, frame2);
+  u8g.drawStr( 15, 55, "Play Pacman!");
+}
+void draw3() {
+  //3rd variable is pixels devided by 8 so 64/8 = 8
+  u8g.drawBitmapP( 64, 5, 4, 32, frame2);
+  u8g.drawStr( 15, 55, "Play Pacman!");
+}
+void draw4() {
+  //3rd variable is pixels devided by 8 so 64/8 = 8
+  u8g.drawBitmapP( 94, 5, 4, 32, frame2);
+  u8g.drawStr( 15, 55, "Play Pacman!");
+}
+void draw5() {
+  //3rd variable is pixels devided by 8 so 64/8 = 8
+  // u8g.drawBitmapP( 94, 0, 4, 32, frame2);
+  u8g.drawStr( 15, 55, "Play Pacman!");
+}
+void draw6() {
+  //3rd variable is pixels devided by 8 so 64/8 = 8
+   u8g.drawBitmapP( 42, 5, 4, 32, frame1);
+  u8g.drawStr( 25, 55, "Ssssssst!");
+}
